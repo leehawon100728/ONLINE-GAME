@@ -3,14 +3,14 @@ import { useEffect, useState } from 'react';
 const RADIUS = 17;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export default function TurnTimer({ deadline, totalSeconds }) {
-  const [now, setNow] = useState(Date.now());
+export default function TurnTimer({ deadline, totalSeconds, serverOffset = 0 }) {
+  const [now, setNow] = useState(Date.now() + serverOffset);
 
   useEffect(() => {
     if (!deadline) return undefined;
-    const id = setInterval(() => setNow(Date.now()), 200);
+    const id = setInterval(() => setNow(Date.now() + serverOffset), 200);
     return () => clearInterval(id);
-  }, [deadline]);
+  }, [deadline, serverOffset]);
 
   if (!deadline || !totalSeconds) {
     return <div className="turn-timer unlimited">무제한</div>;

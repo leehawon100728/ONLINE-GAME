@@ -28,7 +28,7 @@ function buildSeatedPlayers(room, gameState) {
 
 export default function GomokuPage() {
   const navigate = useNavigate();
-  const { session, room, gameState, move, returnToLobby, leaveRoom, error, clearError } = useRoom();
+  const { session, room, gameState, serverOffset, move, returnToLobby, leaveRoom, error, clearError } = useRoom();
 
   if (!room || !gameState || !session) return <div className="page-center">불러오는 중...</div>;
 
@@ -80,7 +80,7 @@ export default function GomokuPage() {
 
         <div className="turn-info">
           <span className={'turn-text' + (isMyTurn ? ' my-turn' : '')}>{turnLabel}</span>
-          <TurnTimer deadline={gameState.turnDeadline} totalSeconds={gameState.turnSeconds} />
+          <TurnTimer deadline={gameState.turnDeadline} totalSeconds={gameState.turnSeconds} serverOffset={serverOffset} />
         </div>
 
         <div className="board-wrap">

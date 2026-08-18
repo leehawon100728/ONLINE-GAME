@@ -370,6 +370,7 @@ export function RoomProvider({ children }) {
     session,
     room,
     gameState,
+    serverOffset,
     connected,
     error,
     clearError: () => setError(null),
