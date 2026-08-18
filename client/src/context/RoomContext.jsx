@@ -29,7 +29,20 @@ export function RoomProvider({ children }) {
   const serverNow = useCallback(() => Date.now() + serverOffset, [serverOffset]);
 
   useEffect(() => {
-    ensureSignedIn().then((user) => setUid(user.uid));
+    let cancelled = false;
+    function attempt() {
+      ensureSignedIn()
+        .then((user) => {
+          if (!cancelled) setUid(user.uid);
+        })
+        .catch(() => {
+          if (!cancelled) setTimeout(attempt, 2000);
+        });
+    }
+    attempt();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -120,8 +133,14 @@ export function RoomProvider({ children }) {
   }, [currentCode, rawRoom?.game?.roundStatus, rawRoom?.game?.round, rawRoom?.game?.matchStatus]);
 
   const createRoom = useCallback(async (nickname, gameId) => {
-    const user = await ensureSignedIn();
     setError(null);
+    let user;
+    try {
+      user = await ensureSignedIn();
+    } catch {
+      setError('로그인에 실패했습니다. 네트워크를 확인하고 다시 시도해주세요.');
+      return { ok: false, error: '로그인 실패' };
+    }
     for (let attempt = 0; attempt < 5; attempt++) {
       const code = generateRoomCode();
       try {
@@ -146,9 +165,15 @@ export function RoomProvider({ children }) {
   }, []);
 
   const joinRoom = useCallback(async (codeInput, nickname) => {
-    const user = await ensureSignedIn();
     const code = codeInput.trim().toUpperCase();
     setError(null);
+    let user;
+    try {
+      user = await ensureSignedIn();
+    } catch {
+      setError('로그인에 실패했습니다. 네트워크를 확인하고 다시 시도해주세요.');
+      return { ok: false, error: '로그인 실패' };
+    }
     try {
       const snap = await get(ref(db, `rooms/${code}`));
       if (!snap.exists()) {
@@ -179,9 +204,9 @@ export function RoomProvider({ children }) {
   // Used when landing directly on /room/:code (e.g. after a refresh): attach
   // without creating a new player, only if we're already a member.
   const rejoinRoom = useCallback(async (codeInput) => {
-    const user = await ensureSignedIn();
     const code = codeInput.trim().toUpperCase();
     try {
+      const user = await ensureSignedIn();
       const snap = await get(ref(db, `rooms/${code}/players/${user.uid}`));
       if (!snap.exists()) return { ok: false, error: 'not-a-member' };
       setCurrentCode(code);

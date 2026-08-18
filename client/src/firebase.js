@@ -34,6 +34,11 @@ export function ensureSignedIn() {
         unsubscribe();
         reject(err);
       });
+    }).catch((err) => {
+      // Allow the next call to retry instead of replaying this rejection forever
+      // (a transient network hiccup would otherwise wedge the app permanently).
+      signInPromise = null;
+      throw err;
     });
   }
   return signInPromise;
