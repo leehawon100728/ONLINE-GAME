@@ -1,0 +1,50 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "rooms": {
+      "$code": {
+        ".read": "auth != null",
+
+        "$other": {
+          ".write": false
+        },
+
+        ".write": "auth != null && !data.exists() && newData.child('hostUid').val() === auth.uid && newData.child('players').child(auth.uid).exists()",
+
+        "hostUid": {
+          ".write": "auth != null && data.exists() && newData.val() === auth.uid && root.child('rooms').child($code).child('players').child(auth.uid).exists() && (!root.child('rooms').child($code).child('players').child(data.val()).exists() || root.child('rooms').child($code).child('players').child(data.val()).child('connected').val() === false)"
+        },
+
+        "status": {
+          ".write": "auth != null && (root.child('rooms').child($code).child('hostUid').val() === auth.uid || (newData.val() === 'lobby' && root.child('rooms').child($code).child('players').child(auth.uid).exists()))",
+          ".validate": "newData.isString() && (newData.val() === 'lobby' || newData.val() === 'in-game')"
+        },
+
+        "selectedGame": {
+          ".write": "auth != null && root.child('rooms').child($code).child('hostUid').val() === auth.uid"
+        },
+
+        "settings": {
+          ".write": "auth != null && root.child('rooms').child($code).child('hostUid').val() === auth.uid"
+        },
+
+        "createdAt": {
+          ".write": "auth != null && !data.exists()"
+        },
+
+        "players": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.hasChildren(['nickname']) && newData.child('nickname').isString() && newData.child('nickname').val().length > 0 && newData.child('nickname').val().length <= 20"
+          }
+        },
+
+        "game": {
+          ".write": "auth != null && ((!data.exists() && root.child('rooms').child($code).child('hostUid').val() === auth.uid) || (data.exists() && root.child('rooms').child($code).child('players').child(auth.uid).exists() && root.child('rooms').child($code).child('players').child(auth.uid).child('isSpectator').val() !== true))"
+        }
+      }
+    }
+  }
+}
