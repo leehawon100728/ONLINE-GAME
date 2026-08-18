@@ -36,6 +36,25 @@ test('rejects a move onto an occupied cell', () => {
   assert.equal(result, undefined);
 });
 
+test('a move that would create a double three is rejected for black', () => {
+  const game = {
+    board: { 7: { 5: 'black', 7: 'black' }, 6: { 6: 'black' }, 8: { 6: 'black' } },
+    colorOf: { [P1]: 'black', [P2]: 'white' },
+    turnColor: 'black',
+    round: 1,
+    roundStatus: 'playing',
+    roundResult: null,
+    matchStatus: 'playing',
+    winnerUid: null,
+    lastMove: null,
+    turnDeadline: null,
+    scores: { [P1]: 0, [P2]: 0 },
+  };
+  const opts = { matchFormat: 'bo1', turnSeconds: null, serverNow: NOW };
+  const result = applyMove(game, opts, P1, 7, 6); // row 7, col 6 -> completes a 3-3
+  assert.equal(result, undefined);
+});
+
 test('five in a row ends the round and, in bo1, the match, crediting the right player', () => {
   let game = createInitialGame({ playerIds: [P1, P2], turnSeconds: 60, serverNow: NOW });
   const opts = { matchFormat: 'bo1', turnSeconds: 60, serverNow: NOW };

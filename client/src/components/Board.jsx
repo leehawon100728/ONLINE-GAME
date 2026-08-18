@@ -4,7 +4,8 @@ const PADDING = 28;
 const BOARD_PX = PADDING * 2 + CELL * (SIZE - 1);
 const STAR_POINTS = [3, 7, 11].flatMap((x) => [3, 7, 11].map((y) => ({ x, y })));
 
-export default function Board({ board, onCellClick, disabled, lastMove }) {
+export default function Board({ board, onCellClick, disabled, lastMove, forbiddenCells }) {
+  const forbiddenSet = new Set((forbiddenCells || []).map(([fx, fy]) => `${fx},${fy}`));
   const lines = [];
   for (let i = 0; i < SIZE; i++) {
     const pos = PADDING + i * CELL;
@@ -37,16 +38,24 @@ export default function Board({ board, onCellClick, disabled, lastMove }) {
           </g>
         );
       } else {
+        const isForbidden = forbiddenSet.has(`${x},${y}`);
         hitCells.push(
-          <rect
-            key={`h${x}-${y}`}
-            x={cx - CELL / 2}
-            y={cy - CELL / 2}
-            width={CELL}
-            height={CELL}
-            className={disabled ? 'cell-hit' : 'cell-hit clickable'}
-            onClick={() => !disabled && onCellClick(x, y)}
-          />
+          <g key={`h${x}-${y}`}>
+            <rect
+              x={cx - CELL / 2}
+              y={cy - CELL / 2}
+              width={CELL}
+              height={CELL}
+              className={disabled || isForbidden ? 'cell-hit' : 'cell-hit clickable'}
+              onClick={() => !disabled && !isForbidden && onCellClick(x, y)}
+            />
+            {isForbidden && (
+              <g className="forbidden-mark">
+                <line x1={cx - CELL * 0.22} y1={cy - CELL * 0.22} x2={cx + CELL * 0.22} y2={cy + CELL * 0.22} />
+                <line x1={cx + CELL * 0.22} y1={cy - CELL * 0.22} x2={cx - CELL * 0.22} y2={cy + CELL * 0.22} />
+              </g>
+            )}
+          </g>
         );
       }
     }

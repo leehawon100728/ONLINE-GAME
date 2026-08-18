@@ -1,4 +1,4 @@
-import { createBoard, checkWin, isValidMove, isBoardFull } from './engine.js';
+import { createBoard, checkWin, isValidMove, isBoardFull, isForbiddenMove } from './engine.js';
 
 export const MATCH_FORMATS = {
   bo1: { label: '단판', totalRounds: 1, winsNeeded: 1 },
@@ -57,6 +57,7 @@ export function applyMove(game, { matchFormat, turnSeconds, serverNow }, playerI
   const boardArray = sparseToArray(game.board);
   if (!isValidMove(boardArray, col, row)) return undefined;
   boardArray[row][col] = color;
+  if (isForbiddenMove(boardArray, col, row, color)) return undefined;
 
   // Realtime Database doesn't persist empty objects, so a fresh round's board
   // reads back as `undefined` rather than `{}` -- guard every access to it.

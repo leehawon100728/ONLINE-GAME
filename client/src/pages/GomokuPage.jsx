@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useRoom } from '../context/RoomContext.jsx';
+import { getForbiddenCells } from '../games/gomoku/engine.js';
 import Board from '../components/Board.jsx';
 import TurnTimer from '../components/TurnTimer.jsx';
 import ScoreBar from '../components/ScoreBar.jsx';
@@ -38,6 +39,7 @@ export default function GomokuPage() {
   const isMyTurn = !isSpectator && gameState.turnColor === myColor && gameState.roundStatus === 'playing';
   const roundOver = gameState.roundStatus === 'round-over';
   const matchOver = gameState.status === 'match-over';
+  const forbiddenCells = isMyTurn && myColor === 'black' ? getForbiddenCells(gameState.board, 'black') : [];
 
   const seatedPlayers = buildSeatedPlayers(room, gameState);
   const [left, right] = seatedPlayers;
@@ -89,6 +91,7 @@ export default function GomokuPage() {
             onCellClick={handleCellClick}
             disabled={!isMyTurn}
             lastMove={gameState.lastMove}
+            forbiddenCells={forbiddenCells}
           />
 
           {roundOver && !matchOver && (

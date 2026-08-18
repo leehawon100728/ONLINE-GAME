@@ -601,6 +601,16 @@ select {
   fill: rgba(255, 255, 255, 0.25);
 }
 
+.forbidden-mark {
+  pointer-events: none;
+}
+
+.forbidden-mark line {
+  stroke: #d64545;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
 .stone {
   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
 }
