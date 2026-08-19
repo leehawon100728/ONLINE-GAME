@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRoom } from '../context/RoomContext.jsx';
 import { REVEAL_SECONDS } from '../games/timing/session.js';
+import { TARGET_MIN, TARGET_MAX } from '../games/timing/engine.js';
+
+const SPIN_SECONDS = 1.2; // how long the target "slot machine" spins before landing
 
 function formatSeconds(seconds) {
   return seconds.toFixed(2);
@@ -43,6 +46,8 @@ export default function TimingPage() {
   const myStopAt = timingState.stops[session.playerId];
   const elapsedSeconds = Math.max(0, (now - timingState.startedAt) / 1000);
   const revealing = elapsedSeconds < REVEAL_SECONDS;
+  const spinning = elapsedSeconds < SPIN_SECONDS;
+  const displayTarget = spinning ? TARGET_MIN + Math.random() * (TARGET_MAX - TARGET_MIN) : timingState.target;
 
   const nicknameOf = (playerId) => room.players.find((p) => p.playerId === playerId)?.nickname ?? '';
   const sortedScores = [...activePlayers].sort(
@@ -84,38 +89,53 @@ export default function TimingPage() {
           ))}
         </ul>
 
-        <div className="timing-arena">
-          {isSpectator ? (
-            <p className="wait-note">관전 중입니다.</p>
-          ) : (
-            <div className="timing-own-card">
-              <div className={'timing-clock' + (revealing ? '' : ' blind')}>
-                {hasStopped
-                  ? formatSeconds((myStopAt - timingState.startedAt) / 1000)
-                  : revealing
-                    ? formatSeconds(elapsedSeconds)
-                    : '??.??'}
-              </div>
-              <button className="btn btn-primary btn-large" disabled={hasStopped || roundOver} onClick={handleStop}>
-                {hasStopped ? '기록됨, 대기 중...' : '지금 멈추기!'}
-              </button>
-            </div>
-          )}
+        <p className="timing-target-hint">
+          목표 시간은 {TARGET_MIN}~{TARGET_MAX}초 사이에서 무작위로 정해져요. 처음 {REVEAL_SECONDS}초 동안만 목표
+          시간이 보이니 잘 기억해뒀다가, 그만큼 시간이 지났다고 생각되면 멈추세요!
+        </p>
 
-          {others.length > 0 && (
-            <div className="timing-others-grid">
-              {others.map((p) => (
-                <div key={p.playerId} className="timing-other-card">
-                  <span className="timing-other-name">{p.nickname}</span>
-                  <span
-                    className={'timing-other-status' + (timingState.stops[p.playerId] != null ? ' stopped' : '')}
-                  >
-                    {timingState.stops[p.playerId] != null ? '✅ 멈춤' : '⏳ 측정 중'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+        {!roundOver && (
+          <div className={'timing-target-banner' + (spinning ? ' spinning' : '')}>
+            {revealing ? (
+              <>
+                <span className="timing-target-label">🎯 목표 시간</span>
+                <span className="timing-target-value">{formatSeconds(displayTarget)}초</span>
+              </>
+            ) : (
+              <span className="timing-target-hidden">🔒 목표 시간을 기억하고 있나요?</span>
+            )}
+          </div>
+        )}
+
+        <div className="timing-arena">
+          <div className={'timing-split-grid' + (isSpectator ? ' spectating' : '')}>
+            {!isSpectator && (
+              <div className="timing-tile mine">
+                <span className="timing-tile-name">{me.nickname}</span>
+                {hasStopped ? (
+                  <div className="timing-clock">{formatSeconds((myStopAt - timingState.startedAt) / 1000)}초</div>
+                ) : (
+                  <div className="timing-clock blind">??.??</div>
+                )}
+                <button className="btn btn-primary btn-large" disabled={hasStopped || roundOver} onClick={handleStop}>
+                  {hasStopped ? '기록됨, 대기 중...' : '지금 멈추기!'}
+                </button>
+              </div>
+            )}
+
+            {others.map((p) => (
+              <div key={p.playerId} className="timing-tile">
+                <span className="timing-tile-name">{p.nickname}</span>
+                <span
+                  className={'timing-other-status' + (timingState.stops[p.playerId] != null ? ' stopped' : '')}
+                >
+                  {timingState.stops[p.playerId] != null ? '✅ 멈춤' : '⏳ 측정 중'}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {isSpectator && <p className="wait-note">관전 중입니다.</p>}
 
           {roundOver && !matchOver && timingState.roundResult && (
             <div className="overlay">
