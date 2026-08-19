@@ -12,10 +12,10 @@ import {
 } from '../games/gomoku/session.js';
 
 const RoomContext = createContext(null);
-const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 0/O, 1/I 제외
+const CODE_CHARS = '0123456789';
 
 function generateRoomCode() {
-  return Array.from({ length: 6 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+  return Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
 }
 
 export function RoomProvider({ children }) {

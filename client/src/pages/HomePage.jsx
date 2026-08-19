@@ -80,9 +80,11 @@ export default function HomePage() {
           <form onSubmit={handleJoin} className="join-form">
             <input
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              maxLength={6}
-              placeholder="방 코드"
+              onChange={(e) => setJoinCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              maxLength={4}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="방 코드 (숫자 4자리)"
               className="code-input"
             />
             <button
