@@ -114,6 +114,7 @@ select {
 
 .nickname-row input {
   flex: 1;
+  min-width: 0;
   padding: 12px 14px;
   border: 2px solid var(--line);
   border-radius: 12px;
@@ -128,6 +129,7 @@ select {
 }
 
 .btn-icon {
+  flex-shrink: 0;
   padding: 8px 12px;
   font-size: 1.1rem;
   border-radius: 12px;
