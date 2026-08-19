@@ -5,6 +5,17 @@ export const MATCH_FORMAT_OPTIONS = [
   { value: 'bo7', label: '7판 4선승' },
 ];
 
+export const ROUND_COUNT_OPTIONS = [
+  { value: 'bo1', label: '단판' },
+  { value: 'bo3', label: '3판' },
+  { value: 'bo5', label: '5판' },
+  { value: 'bo7', label: '7판' },
+];
+
+export function roundCountLabel(matchFormat) {
+  return ROUND_COUNT_OPTIONS.find((o) => o.value === matchFormat)?.label ?? matchFormat;
+}
+
 export const TURN_SECONDS_OPTIONS = [
   { value: '10', label: '10초' },
   { value: '15', label: '15초' },

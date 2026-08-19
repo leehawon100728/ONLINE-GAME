@@ -73,6 +73,14 @@ export default function HomePage() {
               <span>준비중</span>
             </button>
           </div>
+
+          <p className="game-category-label">개인전</p>
+          <div className="game-choices">
+            <button className="game-choice" disabled={busy || !trimmedNickname} onClick={() => handlePlay('timing')}>
+              <span className="game-choice-icon">⏱️</span>
+              <span>시간 맞추기</span>
+            </button>
+          </div>
         </div>
 
         <div className="panel join-panel">

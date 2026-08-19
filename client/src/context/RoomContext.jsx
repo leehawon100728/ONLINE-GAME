@@ -2,17 +2,27 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { ref, onValue, get, set, update, remove, runTransaction, onDisconnect, serverTimestamp } from 'firebase/database';
 import { db, ensureSignedIn } from '../firebase.js';
 import {
-  createInitialGame,
+  createInitialGame as createInitialGomoku,
   applyMove,
   applyTimeout,
-  advanceRound,
+  advanceRound as advanceGomokuRound,
   sparseToArray,
   MATCH_FORMATS,
   NEXT_ROUND_DELAY_MS,
 } from '../games/gomoku/session.js';
+import {
+  createInitialGame as createInitialTiming,
+  submitStop as submitTimingStopMove,
+  forceFinishRound,
+  advanceRound as advanceTimingRound,
+  ROUND_COUNTS,
+  ROUND_TIMEOUT_MS,
+} from '../games/timing/session.js';
 
 const RoomContext = createContext(null);
 const CODE_CHARS = '0123456789';
+const GAME_CAPACITY = { gomoku: 2, timing: 8 };
+const GAME_MIN_TO_START = { gomoku: 2, timing: 1 };
 
 function generateRoomCode() {
   return Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
@@ -120,17 +130,50 @@ export function RoomProvider({ children }) {
   useEffect(() => {
     const game = rawRoom?.game;
     if (!game || game.matchStatus !== 'playing' || game.roundStatus !== 'round-over') return undefined;
+    const selectedGame = rawRoom.selectedGame;
     const handle = setTimeout(() => {
       if (!currentCode) return;
-      const turnSeconds = rawRoom?.settings?.turnSeconds ?? null;
       runTransaction(ref(db, `rooms/${currentCode}/game`), (current) => {
         if (!current) return undefined;
-        return advanceRound(current, { turnSeconds, serverNow: serverNow() });
+        if (selectedGame === 'gomoku') {
+          const turnSeconds = rawRoom?.settings?.turnSeconds ?? null;
+          return advanceGomokuRound(current, { turnSeconds, serverNow: serverNow() });
+        }
+        return advanceTimingRound(current, { serverNow: serverNow() });
       }).catch(() => {});
     }, NEXT_ROUND_DELAY_MS);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCode, rawRoom?.game?.roundStatus, rawRoom?.game?.round, rawRoom?.game?.matchStatus]);
+
+  // Timing-game safety net: if not everyone has clicked stop well past the
+  // longest possible target, force-finish the round using the cutoff time.
+  useEffect(() => {
+    const game = rawRoom?.game;
+    if (
+      rawRoom?.selectedGame !== 'timing' ||
+      !game ||
+      game.matchStatus !== 'playing' ||
+      game.roundStatus !== 'playing'
+    ) {
+      return undefined;
+    }
+    const cutoffAt = game.startedAt + ROUND_TIMEOUT_MS;
+    const msLeft = cutoffAt - serverNow();
+    const activePlayerIds = Object.entries(rawRoom.players || {})
+      .filter(([, p]) => !p.isSpectator)
+      .map(([id]) => id);
+    const roundCount = ROUND_COUNTS[rawRoom.settings?.matchFormat] ?? ROUND_COUNTS.bo3;
+    const handle = setTimeout(() => {
+      if (!currentCode) return;
+      runTransaction(ref(db, `rooms/${currentCode}/game`), (current) => {
+        if (!current) return undefined;
+        return forceFinishRound(current, { activePlayerIds, roundCount }, cutoffAt);
+      }).catch(() => {});
+    }, Math.max(0, msLeft));
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCode, rawRoom?.selectedGame, rawRoom?.game?.startedAt, rawRoom?.game?.roundStatus, rawRoom?.game?.matchStatus]);
 
   const createRoom = useCallback(async (nickname, gameId) => {
     setError(null);
@@ -186,7 +229,8 @@ export function RoomProvider({ children }) {
         return { ok: true, roomCode: code };
       }
       const activeCount = Object.values(data.players || {}).filter((p) => !p.isSpectator).length;
-      const isSpectator = activeCount >= 2;
+      const capacity = GAME_CAPACITY[data.selectedGame] ?? 2;
+      const isSpectator = activeCount >= capacity;
       await set(ref(db, `rooms/${code}/players/${user.uid}`), {
         nickname,
         seat: isSpectator ? null : activeCount,
@@ -232,23 +276,31 @@ export function RoomProvider({ children }) {
 
   const startGame = useCallback(async () => {
     if (!currentCode || !rawRoom) return { ok: false };
-    const activePlayers = Object.entries(rawRoom.players || {})
-      .filter(([, p]) => !p.isSpectator)
-      .sort((a, b) => a[1].seat - b[1].seat)
-      .map(([id]) => id);
-    if (activePlayers.length !== 2) {
-      setError('2명이 모두 입장해야 시작할 수 있습니다.');
-      return { ok: false };
-    }
     if (!rawRoom.selectedGame) {
       setError('게임을 선택해주세요.');
       return { ok: false };
     }
-    const initialGame = createInitialGame({
-      playerIds: activePlayers,
-      turnSeconds: rawRoom.settings?.turnSeconds ?? null,
-      serverNow: serverNow(),
-    });
+    const activePlayers = Object.entries(rawRoom.players || {})
+      .filter(([, p]) => !p.isSpectator)
+      .sort((a, b) => a[1].seat - b[1].seat)
+      .map(([id]) => id);
+    const minPlayers = GAME_MIN_TO_START[rawRoom.selectedGame] ?? 2;
+    if (rawRoom.selectedGame === 'gomoku' && activePlayers.length !== 2) {
+      setError('2명이 모두 입장해야 시작할 수 있습니다.');
+      return { ok: false };
+    }
+    if (activePlayers.length < minPlayers) {
+      setError('참가자가 더 필요합니다.');
+      return { ok: false };
+    }
+    const initialGame =
+      rawRoom.selectedGame === 'gomoku'
+        ? createInitialGomoku({
+            playerIds: activePlayers,
+            turnSeconds: rawRoom.settings?.turnSeconds ?? null,
+            serverNow: serverNow(),
+          })
+        : createInitialTiming({ playerIds: activePlayers, serverNow: serverNow() });
     try {
       await update(ref(db), {
         [`rooms/${currentCode}/status`]: 'in-game',
@@ -299,6 +351,25 @@ export function RoomProvider({ children }) {
     [currentCode, uid, rawRoom, serverNow]
   );
 
+  const submitTimingStop = useCallback(async () => {
+    if (!currentCode || !uid || !rawRoom) return { ok: false };
+    const activePlayerIds = Object.entries(rawRoom.players || {})
+      .filter(([, p]) => !p.isSpectator)
+      .map(([id]) => id);
+    const roundCount = ROUND_COUNTS[rawRoom.settings?.matchFormat] ?? ROUND_COUNTS.bo3;
+    try {
+      const result = await runTransaction(ref(db, `rooms/${currentCode}/game`), (current) => {
+        if (!current) return undefined;
+        return submitTimingStopMove(current, { activePlayerIds, roundCount }, uid, serverNow());
+      });
+      if (!result.committed) return { ok: false };
+      return { ok: true };
+    } catch {
+      setError('멈추지 못했습니다.');
+      return { ok: false };
+    }
+  }, [currentCode, uid, rawRoom, serverNow]);
+
   const leaveRoom = useCallback(async () => {
     if (!currentCode || !uid) {
       setCurrentCode(null);
@@ -340,7 +411,7 @@ export function RoomProvider({ children }) {
 
   const gameState = useMemo(() => {
     const game = rawRoom?.game;
-    if (!game) return null;
+    if (!game || rawRoom.selectedGame !== 'gomoku') return null;
     const format = MATCH_FORMATS[rawRoom.settings?.matchFormat] || MATCH_FORMATS.bo3;
     return {
       board: sparseToArray(game.board),
@@ -361,6 +432,24 @@ export function RoomProvider({ children }) {
     };
   }, [rawRoom]);
 
+  const timingState = useMemo(() => {
+    const game = rawRoom?.game;
+    if (!game || rawRoom.selectedGame !== 'timing') return null;
+    const roundCount = ROUND_COUNTS[rawRoom.settings?.matchFormat] ?? ROUND_COUNTS.bo3;
+    return {
+      target: game.target,
+      startedAt: game.startedAt,
+      round: game.round,
+      roundCount,
+      stops: game.stops || {},
+      scores: game.scores,
+      status: game.matchStatus,
+      roundStatus: game.roundStatus,
+      roundResult: game.roundResult,
+      winnerPlayerIds: game.winnerPlayerIds,
+    };
+  }, [rawRoom]);
+
   const session = useMemo(() => {
     if (!uid || !currentCode) return null;
     return { playerId: uid, roomCode: currentCode, nickname: rawRoom?.players?.[uid]?.nickname };
@@ -370,6 +459,7 @@ export function RoomProvider({ children }) {
     session,
     room,
     gameState,
+    timingState,
     serverOffset,
     connected,
     error,
@@ -381,6 +471,7 @@ export function RoomProvider({ children }) {
     startGame,
     returnToLobby,
     move,
+    submitTimingStop,
     leaveRoom,
   };
 

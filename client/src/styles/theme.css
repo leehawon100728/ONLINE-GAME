@@ -630,6 +630,113 @@ select {
   stroke: var(--accent-dark);
 }
 
+/* Timing (time-guessing) game screen */
+.timing-score-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.timing-score-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--card-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+
+.timing-score-list li.me {
+  border-color: var(--accent);
+}
+
+.timing-score-value {
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.timing-arena {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 0;
+}
+
+.timing-own-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.timing-clock {
+  font-family: 'Jua', sans-serif;
+  font-size: 3.2rem;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.timing-clock.blind {
+  color: var(--ink-soft);
+}
+
+.timing-others-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.timing-other-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px;
+  background: var(--card-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.timing-other-name {
+  font-weight: 600;
+}
+
+.timing-other-status {
+  color: var(--ink-soft);
+}
+
+.timing-other-status.stopped {
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+.timing-result-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.timing-result-list li {
+  padding: 4px 0;
+}
+
+.timing-result-list li.winner {
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
 .overlay {
   position: absolute;
   inset: 0;

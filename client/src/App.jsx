@@ -5,6 +5,7 @@ import BackgroundScene from './components/BackgroundScene.jsx';
 import HomePage from './pages/HomePage.jsx';
 import RoomPage from './pages/RoomPage.jsx';
 import GomokuPage from './pages/GomokuPage.jsx';
+import TimingPage from './pages/TimingPage.jsx';
 
 function RoomGate() {
   const { code } = useParams();
@@ -29,6 +30,9 @@ function RoomGate() {
   }
   if (room.status === 'in-game' && room.selectedGame === 'gomoku') {
     return <GomokuPage />;
+  }
+  if (room.status === 'in-game' && room.selectedGame === 'timing') {
+    return <TimingPage />;
   }
   return <RoomPage />;
 }
