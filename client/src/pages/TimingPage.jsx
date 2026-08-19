@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRoom } from '../context/RoomContext.jsx';
-import { READY_SECONDS } from '../games/timing/session.js';
+import { READY_SECONDS, REVEAL_SECONDS } from '../games/timing/session.js';
 import { TARGET_MIN, TARGET_MAX } from '../games/timing/engine.js';
 
 const SPIN_SECONDS = 1.2; // how long the target "slot machine" spins before landing
@@ -47,6 +47,8 @@ export default function TimingPage() {
   const msToStart = timingState.startedAt - now;
   const readyPhase = msToStart > 0;
   const secondsToStart = Math.max(0, Math.ceil(msToStart / 1000));
+  const elapsedSeconds = Math.max(0, (now - timingState.startedAt) / 1000);
+  const revealingClock = !readyPhase && elapsedSeconds < REVEAL_SECONDS;
   const secondsIntoReady = readyPhase ? READY_SECONDS - msToStart / 1000 : READY_SECONDS;
   const spinning = readyPhase && secondsIntoReady < SPIN_SECONDS;
   const displayTarget = spinning ? TARGET_MIN + Math.random() * (TARGET_MAX - TARGET_MIN) : timingState.target;
@@ -92,8 +94,9 @@ export default function TimingPage() {
         </ul>
 
         <p className="timing-target-hint">
-          목표 시간은 {TARGET_MIN}~{TARGET_MAX}초 사이에서 무작위로 정해지고, 라운드 내내 화면에 계속 보여요. 그
-          시간이 됐다고 생각되는 순간 멈추세요!
+          목표 시간({TARGET_MIN}~{TARGET_MAX}초 사이)은 라운드 내내 화면에 계속 보여요. 시작하고 {REVEAL_SECONDS}초
+          동안은 내 경과 시간도 같이 보여드리니 감을 잡으시고, 이후로는 안 보이니 그 시간이 됐다고 생각되는 순간
+          멈추세요!
         </p>
 
         {!roundOver && (
@@ -113,6 +116,8 @@ export default function TimingPage() {
                 <span className="timing-tile-name">{me.nickname}</span>
                 {hasStopped ? (
                   <div className="timing-clock">{formatSeconds((myStopAt - timingState.startedAt) / 1000)}초</div>
+                ) : revealingClock ? (
+                  <div className="timing-clock">{formatSeconds(elapsedSeconds)}초</div>
                 ) : (
                   <div className="timing-clock blind">??.??</div>
                 )}

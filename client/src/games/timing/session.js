@@ -3,6 +3,10 @@ import { randomTarget, computeError, pickRoundWinners } from './engine.js';
 // Lead-in before the clock actually starts: the target is shown and nobody
 // can click stop yet, so everyone gets a clear look at it beforehand.
 export const READY_SECONDS = 3;
+// Once the clock starts, the elapsed time itself (not the target) is shown
+// for this long so players can calibrate their internal sense of pacing,
+// then it's hidden and they have to judge the rest by feel.
+export const REVEAL_SECONDS = 3;
 export const NEXT_ROUND_DELAY_MS = 3000;
 // Safety net: if someone never clicks stop, the round force-finishes this long
 // after it started (well past the 10-20s target range) rather than hanging forever.
