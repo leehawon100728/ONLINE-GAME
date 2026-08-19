@@ -1,6 +1,9 @@
 import { randomTarget, computeError, pickRoundWinners } from './engine.js';
 
 export const REVEAL_SECONDS = 3;
+// Lead-in before the clock actually starts: the target is shown and nobody
+// can click stop yet, so everyone gets a clear look at it beforehand.
+export const READY_SECONDS = 3;
 export const NEXT_ROUND_DELAY_MS = 3000;
 // Safety net: if someone never clicks stop, the round force-finishes this long
 // after it started (well past the 10-20s target range) rather than hanging forever.
@@ -15,7 +18,7 @@ function round2(n) {
 export function createInitialGame({ playerIds, serverNow }) {
   return {
     target: randomTarget(),
-    startedAt: serverNow,
+    startedAt: serverNow + READY_SECONDS * 1000,
     round: 1,
     roundStatus: 'playing',
     roundResult: null,
@@ -32,6 +35,7 @@ export function submitStop(game, { activePlayerIds, roundCount }, playerId, stop
   if (!game || game.matchStatus !== 'playing' || game.roundStatus !== 'playing') return undefined;
   if (!activePlayerIds.includes(playerId)) return undefined;
   if (game.stops?.[playerId] != null) return undefined;
+  if (stopAt < game.startedAt) return undefined; // still in the pre-round lead-in
 
   const stops = { ...game.stops, [playerId]: stopAt };
   const allStopped = activePlayerIds.every((id) => stops[id] != null);
@@ -81,7 +85,7 @@ export function advanceRound(game, { serverNow }) {
   return {
     ...game,
     target: randomTarget(),
-    startedAt: serverNow,
+    startedAt: serverNow + READY_SECONDS * 1000,
     round: game.round + 1,
     roundStatus: 'playing',
     roundResult: null,

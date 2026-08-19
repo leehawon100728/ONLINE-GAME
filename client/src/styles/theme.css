@@ -704,6 +704,11 @@ select {
   color: var(--accent-dark);
 }
 
+.timing-target-countdown {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
 .timing-target-hidden {
   font-size: 1rem;
   color: var(--ink-soft);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRoom } from '../context/RoomContext.jsx';
-import { REVEAL_SECONDS } from '../games/timing/session.js';
+import { REVEAL_SECONDS, READY_SECONDS } from '../games/timing/session.js';
 import { TARGET_MIN, TARGET_MAX } from '../games/timing/engine.js';
 
 const SPIN_SECONDS = 1.2; // how long the target "slot machine" spins before landing
@@ -44,9 +44,13 @@ export default function TimingPage() {
   const roundOver = timingState.roundStatus === 'round-over';
   const matchOver = timingState.status === 'match-over';
   const myStopAt = timingState.stops[session.playerId];
+  const msToStart = timingState.startedAt - now;
+  const readyPhase = msToStart > 0;
+  const secondsToStart = Math.max(0, Math.ceil(msToStart / 1000));
   const elapsedSeconds = Math.max(0, (now - timingState.startedAt) / 1000);
-  const revealing = elapsedSeconds < REVEAL_SECONDS;
-  const spinning = elapsedSeconds < SPIN_SECONDS;
+  const revealing = readyPhase || elapsedSeconds < REVEAL_SECONDS;
+  const secondsIntoReady = readyPhase ? READY_SECONDS - msToStart / 1000 : READY_SECONDS;
+  const spinning = readyPhase && secondsIntoReady < SPIN_SECONDS;
   const displayTarget = spinning ? TARGET_MIN + Math.random() * (TARGET_MAX - TARGET_MIN) : timingState.target;
 
   const nicknameOf = (playerId) => room.players.find((p) => p.playerId === playerId)?.nickname ?? '';
@@ -55,7 +59,7 @@ export default function TimingPage() {
   );
 
   function handleStop() {
-    if (hasStopped || isSpectator || roundOver) return;
+    if (hasStopped || isSpectator || roundOver || readyPhase) return;
     submitTimingStop();
   }
 
@@ -90,8 +94,9 @@ export default function TimingPage() {
         </ul>
 
         <p className="timing-target-hint">
-          목표 시간은 {TARGET_MIN}~{TARGET_MAX}초 사이에서 무작위로 정해져요. 처음 {REVEAL_SECONDS}초 동안만 목표
-          시간이 보이니 잘 기억해뒀다가, 그만큼 시간이 지났다고 생각되면 멈추세요!
+          목표 시간은 {TARGET_MIN}~{TARGET_MAX}초 사이에서 무작위로 정해져요. 시작 전에 미리 보여드리고, 시작한
+          뒤에도 {REVEAL_SECONDS}초 동안 더 보이다가 가려지니 잘 기억해뒀다가, 그만큼 시간이 지났다고 생각되면
+          멈추세요!
         </p>
 
         {!roundOver && (
@@ -100,6 +105,11 @@ export default function TimingPage() {
               <>
                 <span className="timing-target-label">🎯 목표 시간</span>
                 <span className="timing-target-value">{formatSeconds(displayTarget)}초</span>
+                {readyPhase && (
+                  <span className="timing-target-countdown">
+                    {secondsToStart}초 후 시작! 잘 기억해두세요
+                  </span>
+                )}
               </>
             ) : (
               <span className="timing-target-hidden">🔒 목표 시간을 기억하고 있나요?</span>
@@ -117,8 +127,12 @@ export default function TimingPage() {
                 ) : (
                   <div className="timing-clock blind">??.??</div>
                 )}
-                <button className="btn btn-primary btn-large" disabled={hasStopped || roundOver} onClick={handleStop}>
-                  {hasStopped ? '기록됨, 대기 중...' : '지금 멈추기!'}
+                <button
+                  className="btn btn-primary btn-large"
+                  disabled={hasStopped || roundOver || readyPhase}
+                  onClick={handleStop}
+                >
+                  {hasStopped ? '기록됨, 대기 중...' : readyPhase ? `${secondsToStart}초 후 시작` : '지금 멈추기!'}
                 </button>
               </div>
             )}
@@ -129,7 +143,7 @@ export default function TimingPage() {
                 <span
                   className={'timing-other-status' + (timingState.stops[p.playerId] != null ? ' stopped' : '')}
                 >
-                  {timingState.stops[p.playerId] != null ? '✅ 멈춤' : '⏳ 측정 중'}
+                  {readyPhase ? '🕐 준비 중' : timingState.stops[p.playerId] != null ? '✅ 멈춤' : '⏳ 측정 중'}
                 </span>
               </div>
             ))}

@@ -5,9 +5,10 @@ function round2(n) {
   return Math.round(n * 100) / 100;
 }
 
-// A random target between TARGET_MIN and TARGET_MAX seconds, to 2 decimal places.
+// A clean, whole-second target between TARGET_MIN and TARGET_MAX (e.g. 14, shown as "14.00초")
+// so it's easy to remember during the reveal window.
 export function randomTarget() {
-  return round2(TARGET_MIN + Math.random() * (TARGET_MAX - TARGET_MIN));
+  return TARGET_MIN + Math.floor(Math.random() * (TARGET_MAX - TARGET_MIN + 1));
 }
 
 export function computeError(elapsedSeconds, targetSeconds) {

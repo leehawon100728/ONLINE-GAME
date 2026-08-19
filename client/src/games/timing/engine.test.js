@@ -2,11 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomTarget, computeError, pickRoundWinners, TARGET_MIN, TARGET_MAX } from './engine.js';
 
-test('randomTarget stays within range and has at most 2 decimal places', () => {
+test('randomTarget is a whole number within range', () => {
   for (let i = 0; i < 200; i++) {
     const t = randomTarget();
     assert.ok(t >= TARGET_MIN && t <= TARGET_MAX, `${t} out of range`);
-    assert.ok(Math.abs(Math.round(t * 100) - t * 100) < 1e-6, `${t} has more than 2 decimals`);
+    assert.equal(Number.isInteger(t), true, `${t} is not a whole number`);
   }
 });
 
