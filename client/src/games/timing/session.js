@@ -1,6 +1,5 @@
 import { randomTarget, computeError, pickRoundWinners } from './engine.js';
 
-export const REVEAL_SECONDS = 3;
 // Lead-in before the clock actually starts: the target is shown and nobody
 // can click stop yet, so everyone gets a clear look at it beforehand.
 export const READY_SECONDS = 3;

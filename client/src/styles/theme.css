@@ -709,11 +709,6 @@ select {
   color: var(--ink-soft);
 }
 
-.timing-target-hidden {
-  font-size: 1rem;
-  color: var(--ink-soft);
-  padding: 8px 0;
-}
 
 .timing-arena {
   position: relative;
